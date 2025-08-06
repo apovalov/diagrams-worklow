@@ -1,190 +1,181 @@
 # Diagrams Workflow Service
 
-An async Python API service that generates infrastructure diagrams from natural language descriptions using LLM agents and the Python diagrams package.
+A **simple, focused** async Python API service that generates infrastructure diagrams from natural language descriptions.
 
 ## Features
 
-- 🤖 **LLM-Powered**: Uses Google Gemini API to understand natural language descriptions
-- 🏗️ **Agent Architecture**: Modular tool-based system for diagram generation
+- 🤖 **Smart Generation**: Uses Google Gemini API for natural language understanding
+- 🏗️ **Simple Architecture**: Clean, minimalist design without over-engineering
 - ☁️ **Multi-Cloud Support**: AWS, GCP, and Azure infrastructure components
-- ⚡ **Async FastAPI**: High-performance async web service
+- ⚡ **Async FastAPI**: High-performance web service with automatic cleanup
 - 🐳 **Docker Ready**: Complete containerization with docker-compose
 - 🔧 **UV Package Manager**: Fast, modern Python dependency management
-- 📊 **Structured Logging**: Comprehensive logging for debugging and monitoring
 
 ## Quick Start
 
-### Prerequisites
+### Option 1: Local Development
 
-- Python 3.11+
-- UV package manager
-- Docker and Docker Compose (optional)
-- Google Gemini API key
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd diagrams-workflow
-   ```
-
-2. **Install UV** (if not already installed)
+1. **Install UV and dependencies**
    ```bash
    curl -LsSf https://astral.sh/uv/install.sh | sh
-   ```
-
-3. **Install dependencies**
-   ```bash
    uv sync
    ```
 
-4. **Set up environment**
+2. **Configure environment**
    ```bash
    cp .env.example .env
-   # Edit .env with your Gemini API key
+   # Add your GEMINI_API_KEY (or use MOCK_MODE=true for testing)
    ```
 
-5. **Run the service**
+3. **Run the service**
    ```bash
-   uv run uvicorn src.main:app --reload
+   uv run python src/main.py
+   # Or: uv run uvicorn src.main:app --reload
    ```
 
-### Docker Setup
+### Option 2: Docker (Recommended)
 
-1. **Using docker-compose (recommended)**
-   ```bash
-   # Copy and configure environment
-   cp .env.example .env
-   # Edit .env with your configuration
-   
-   # Build and start the service
-   docker-compose up --build
-   ```
+```bash
+# Quick start with docker-compose
+cp .env.example .env
+# Edit .env with your GEMINI_API_KEY
+docker-compose up --build
 
-2. **Development mode**
-   ```bash
-   docker-compose --profile dev up
-   ```
+# Development mode with hot reload
+docker-compose --profile dev up
+```
+
+## API Usage
+
+### Generate Diagram
+```bash
+curl -X POST http://localhost:8000/generate-diagram \
+  -H "Content-Type: application/json" \
+  -d '{"description": "Web application with load balancer and database"}'
+
+# Response includes diagram_path to download the PNG
+```
+
+### Assistant Chat
+```bash
+curl -X POST http://localhost:8000/assistant \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Create a diagram for a microservices architecture"}'
+
+# Response includes diagram_url if a diagram was generated
+```
+
+### Get Generated Diagram
+```bash
+curl http://localhost:8000/diagrams/{filename}.png --output diagram.png
+```
 
 ## Configuration
 
-Configure the service using environment variables:
+Key environment variables:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `GEMINI_API_KEY` | Google Gemini API key | Required |
-| `DEBUG_MODE` | Enable debug mode | `false` |
-| `LOG_LEVEL` | Logging level | `INFO` |
-| `TEMP_DIR` | Directory for temporary files | `/tmp/diagrams-workflow` |
-| `HOST` | Server host | `0.0.0.0` |
-| `PORT` | Server port | `8000` |
-| `MOCK_MODE` | Use mock responses | `false` |
-
-## API Endpoints
-
-### Generate Diagram
-
-```http
-POST /generate-diagram
-Content-Type: application/json
-
-{
-  "description": "A web application with load balancer, web servers, and RDS database",
-  "provider": "aws",
-  "direction": "TB",
-  "include_labels": true
-}
-```
-
-Response: Binary image file (PNG)
-
-### Assistant Chat (Bonus)
-
-```http
-POST /assistant
-Content-Type: application/json
-
-{
-  "message": "Create a diagram for a serverless application",
-  "context": []
-}
-```
-
-Response:
-```json
-{
-  "response": "I'll create a serverless application diagram for you...",
-  "diagram_url": "/diagrams/abc123.png",
-  "context": [...]
-}
-```
-
-### Health Check
-
-```http
-GET /health
-```
+- `GEMINI_API_KEY` - Your Google Gemini API key (required unless using mock mode)
+- `MOCK_MODE=true` - Use mock responses for development (no API key needed)
+- `DEBUG_MODE=true` - Enable debug logging and API docs
+- `PORT=8000` - Server port
+- `TEMP_DIR` - Directory for generated diagrams
 
 ## Development
 
-### Code Quality
-
+### Run Tests
 ```bash
-# Format code
-uv run black src tests
+# All tests
+uv run pytest
 
-# Lint
+# Specific test file  
+uv run pytest tests/test_api.py
+
+# With coverage
+uv run pytest --cov=src
+```
+
+### Code Quality
+```bash
+# Format and lint
+uv run black src tests
 uv run ruff check src tests
 
-# Type check
+# Type checking
 uv run mypy src
-
-# Run tests
-uv run pytest
 ```
 
-### Project Structure
+## Architecture
 
+### Simple Design
 ```
-src/
-├── main.py                 # FastAPI application
-├── config.py              # Configuration management
-├── agents/
-│   ├── diagram_agent.py    # Main agent orchestrator
-│   └── prompts.py          # LLM prompts
-├── tools/
-│   ├── diagram_tools.py    # Tools for diagrams package
-│   └── validators.py       # Input validation
-├── models/
-│   └── schemas.py          # Pydantic models
-└── utils/
-    └── file_manager.py     # Temp file handling
+FastAPI App → DiagramAgent → DiagramBuilder → PNG File
 ```
+
+**Key Components:**
+- **FastAPI App** (`src/main.py`): Web server with 4 endpoints
+- **DiagramAgent** (`src/agents/diagram_agent.py`): Generates diagrams from descriptions
+- **DiagramBuilder** (`src/tools/diagram_tools.py`): Creates diagrams using the diagrams package
+- **File Manager** (`src/utils/file_manager.py`): Handles temporary file cleanup
+
+### Supported Cloud Services
+- **AWS**: ec2, lambda, rds, s3, alb, vpc, apigateway
+- **GCP**: gce, cloud_functions, cloud_sql, cloud_storage, cloud_load_balancer  
+- **Azure**: vm, functions, sql_database, blob_storage, load_balancer
 
 ## Examples
 
-### Simple Web Application
+**Web Application:**
 ```json
-{
-  "description": "A simple web app with a load balancer, two web servers, and a MySQL database"
-}
+{"description": "Web app with load balancer, web servers, and RDS database"}
 ```
 
-### Microservices Architecture
+**Microservices:**
 ```json
-{
-  "description": "Microservices with API gateway, user service, payment service, notification service, and shared Redis cache"
-}
+{"description": "Microservices with API gateway, user service, and shared database"}
 ```
 
-### Serverless Application
+**Serverless:**
 ```json
-{
-  "description": "Serverless app with Lambda functions, API Gateway, DynamoDB, and S3 bucket for file storage"
-}
+{"description": "Serverless app with Lambda functions, API Gateway, and DynamoDB"}
 ```
+
+## Production Deployment
+
+### Health Check
+The service includes a health endpoint for load balancers:
+```bash
+curl http://localhost:8000/health
+```
+
+### Environment Variables
+Set these in production:
+```bash
+GEMINI_API_KEY=your_api_key_here
+DEBUG_MODE=false
+LOG_LEVEL=INFO
+MOCK_MODE=false
+```
+
+### Resource Management
+- Automatic cleanup of old diagram files
+- Configurable temp file retention
+- Graceful shutdown handling
+
+## Troubleshooting
+
+**No diagrams generated?**
+- Check GEMINI_API_KEY is set correctly
+- Try MOCK_MODE=true for testing
+- Check logs for validation errors
+
+**Import errors?**
+- Run `uv sync` to install dependencies
+- Ensure you're using Python 3.11+
+
+**Docker issues?**
+- Make sure .env file exists with GEMINI_API_KEY
+- Check Docker daemon is running
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT License
